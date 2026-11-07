@@ -8,6 +8,7 @@ Nothing Phone (3)（A024 / Metroid，骁龙 8s Gen 4）的探索开发全过程�
 | 章节 | 内容 | 状态 |
 |---|---|---|
 | [**ROOT 篇**](root/README.md) | 解锁 bootloader + Magisk root 全流程：原理、7 步实操、6 大踩坑实录、救砖预案 | ✅ 已完成 |
+| [**工具箱篇**](tools/README.md) | ROOT 后工具箱：终端/去广告/备份/自动化/抓包全家桶 + Play Protect 拦截链等 6 大踩坑 | ✅ 已完成 |
 | 模块篇 | Zygisk / LSPosed / DisableFlagSecure 模块链 | 📝 计划中 |
 | GUI Harness 篇 | 手机端智能体调度中心部署 | 📝 计划中 |
 | PC 助力篇 | WSL 后端 + Tailscale 组网 + 任务规划接管 | 📝 计划中 |
