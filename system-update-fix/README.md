@@ -331,9 +331,11 @@ java.lang.ClassCastException: com.google.android.gms.update.phone.SystemUpdateCh
 （源码 `NothingPhone3-Root/NothingUpdateFix/`，本版新增 `app/src/main/java/io/github/rtzhang/nothingupdatefix/GmsPageInjector.java`）。
 验证用 APK：`release/NothingUpdateFix.apk`，SHA256 `c3f49ca469f6ae091a2913bbbe57fce4af22f9b4ad9ccd6f6ab57e199dc17605`。
 
-> 推送状态：本版两个提交 `a83ecfe feat(gms)`（视图注入）与 `fca2622 fix(app)`（About 链接）**已在本地就绪，
-> 尚未推到 GitHub**（远端 `main` 仍停在 `77ef737`，release 仅 `v1.0.0`）；真机截图
-> `screenshots/device_v101_*.png` 待随提交入库。
+> **发布状态（已核实）**：本版两个提交 `a83ecfe feat(gms)`（视图注入）与 `fca2622 fix(app)`（About 链接）**已推送**，
+> 远端 `main` = `8962f0b2e9de0e9b7a2fe3c42db7cfe92fa00a76`；Release **v1.0.1** 已上线
+> <https://github.com/rtzhang1202/nothing-update-fix/releases/tag/v1.0.1>，资产 `NothingUpdateFix.apk`（50263 B）
+> 匿名下载回读 SHA256 = `c3f49ca469f6ae091a2913bbbe57fce4af22f9b4ad9ccd6f6ab57e199dc17605`，与发布说明一致；
+> 真机截图 `screenshots/device_v101_*.png` 已随提交入库。
 
 **关联**：开源仓库 <https://github.com/rtzhang1202/nothing-update-fix>（模块源码、`docs/ROOT_CAUSE.md`、`screenshots/`、`report.md`）；
 本地源码 `NothingPhone3-Root/NothingUpdateFix/`；真机验证证据 `NothingPhone3-Root/analysis/phase2–phase6/`
