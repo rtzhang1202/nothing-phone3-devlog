@@ -1,0 +1,7 @@
+build_out/
+release/
+keystore/
+*.bak
+*.bak2
+*.apk
+__pycache__/

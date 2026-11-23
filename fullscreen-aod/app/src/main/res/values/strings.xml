@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fullscreen AOD</string>
+    <string name="app_subtitle">Nothing Phone (3) · Android 17 / NOS 5.0</string>
+
+    <string name="master_label">Enable full-screen AOD</string>
+
+    <string name="section_presets">Presets</string>
+    <string name="section_brightness">Brightness</string>
+    <string name="section_dimming">Dimming</string>
+    <string name="section_elements">Elements</string>
+
+    <string name="preset_night">Night</string>
+    <string name="preset_standard">Standard</string>
+    <string name="preset_bright">Bright</string>
+
+    <string name="dim_foreground">AOD foreground dim</string>
+    <string name="dim_wallpaper">Wallpaper dim</string>
+    <string name="brt_scale">Auto-brightness scale</string>
+    <string name="brt_min">Brightness floor</string>
+    <string name="brt_max">Brightness ceiling</string>
+
+    <string name="sw_adaptive">Adaptive ambient dim</string>
+    <string name="sw_widgets">Show widgets</string>
+    <string name="sw_notifications">Show notifications</string>
+    <string name="sw_shortcuts">Keep shortcuts</string>
+
+    <string name="reset">Reset to defaults</string>
+
+    <string name="value_format">%2$d%%</string>
+
+    <string name="status_scope">Scope: com.android.systemui, system</string>
+    <string name="status_pocket">Pocket mode preserved (DOZE_AOD_PAUSED)</string>
+    <string name="status_burnin">Burn-in shift preserved (native)</string>
+    <string name="status_hot">All values apply within ~1.5 s (hot)</string>
+    <string name="status_cli">CLI: settings put global fullaod_* &lt;value&gt;</string>
+</resources>
