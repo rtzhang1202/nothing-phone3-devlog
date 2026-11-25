@@ -1,0 +1,10 @@
+# KeyPilot optional companion SELinux policy patches (Magisk sepolicy.rule)
+# Allows root/magisk native fallback daemon (keypilotd) to access /dev/uinput and /dev/input/event*
+allow magisk uhid_device chr_file { open read write ioctl getattr }
+allow magisk input_device dir { search read open getattr }
+allow magisk input_device chr_file { open read write ioctl getattr }
+allow su uhid_device chr_file { open read write ioctl getattr }
+allow su input_device chr_file { open read write ioctl getattr }
+
+# Ensure system_server can always read/write /data/system/keypilot.json cleanly
+allow system_server system_data_file file { create open read write getattr setattr unlink rename }

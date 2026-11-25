@@ -1,0 +1,6 @@
+id=keypilot_companion
+name=KeyPilot Companion (Optional)
+version=v1.0.0
+versionCode=1
+author=rtzhang
+description=Optional companion Magisk module for KeyPilot on Nothing Phone (3): SELinux rules for /dev/uinput & input devices plus optional opt-in keypilotd EVIOCGRAB fallback daemon. Main KeyPilot Xposed app does NOT depend on this module.

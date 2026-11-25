@@ -11,6 +11,7 @@ Nothing Phone (3)（A024 / Metroid，骁龙 8s Gen 4）的探索开发全过程�
 | [**工具箱篇**](tools/README.md) | ROOT 后工具箱：终端/去广告/备份/自动化/抓包全家桶 + Play Protect 拦截链等 6 大踩坑 | ✅ 已完成 |
 | [**系统更新页修复**](system-update-fix/README.md) | 更新日志/固件信息丢失根因（GMS gOTA 双链路断供）+ NothingUpdateFix 模块修复，真机验证完成 | ✅ 已完成 |
 | [**全屏 AOD 篇**](fullscreen-aod/README.md) | 全屏锁屏式 AOD LSPosed 模块：组件动画/亮度映射/定时转普通/定时规则 GUI/无闪屏 doze 全记录 + 使用教程 | ✅ 已完成 |
+| [**按键自定义（KeyPilot）**](keypilot-按键自定义/README.md) | 四物理按键全息勘察（Essential Key `scancode=250` 逆向）→ KeyPilot 框架（v1 13/13 + v2 上下文分流 11/11 + M3 UI 5 轮全绿） | ✅ 已完成 |
 | 模块篇 | Zygisk / LSPosed / DisableFlagSecure 模块链 | 📝 计划中 |
 | GUI Harness 篇 | 手机端智能体调度中心部署 | 📝 计划中 |
 | PC 助力篇 | WSL 后端 + Tailscale 组网 + 任务规划接管 | 📝 计划中 |
