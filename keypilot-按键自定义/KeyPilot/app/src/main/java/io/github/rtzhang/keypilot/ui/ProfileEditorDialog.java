@@ -379,6 +379,10 @@ public final class ProfileEditorDialog {
             case DEEP_LINK:
                 val = spec.label != null ? spec.label : (spec.dataUri != null ? spec.dataUri : "Deep Link");
                 break;
+            case LAUNCH_ACTIVITY:
+                String named = LabelStore.displayLabel(activity, spec);
+                val = named != null ? named : "启动指定 Activity";
+                break;
             case MEDIA_TRANSPORT:
                 val = localizeMediaCmd(spec.mediaCommand);
                 break;

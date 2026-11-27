@@ -400,3 +400,66 @@
 - **V2-REG-03（v1 JSON 配置向后兼容回归）**：向 `CONFIG_UPDATE` 广播不带 `profiles`/`blacklistPackages` 字段的旧版 `version: 1` JSON。**判据**：`ConfigBridge` 正常解析并落盘，v1 全部 6 项映射与热更新/冷启动零退化。
 - **V2-REG-04（息屏/锁屏防坑开关回归）**：关闭 `allowWhenScreenOff` → 息屏下短按 EK。**判据**：日志含 `screen_off_gate`，不执行自定义动作。
 - **V2-REG-05（安全红线 ①② 回归）**：在命中 `prof_camera_shutter` 与 `prof_game_bypass` 前台下，长按电源键必出 `GlobalActionsDialogLite`，`POWER+VOL_DOWN` 必截屏、`POWER+VOL_UP` 必出电源菜单。
+
+---
+
+## 5. Activity 探测绑定器测试矩阵（ACT-01 ~ ACT-08）
+
+> **前置**：`adb install -r release/KeyPilot.apk` 并重启（覆盖安装后需重启才吃到新钩子）；确认
+> `adb logcat -d | grep "KeyPilot: ConfigBridge ready"` 出现；屏幕亮屏解锁。
+> **证据目录**：`verify_activity/`（截图 + `REPORT.md` + `report.json`）。
+
+### ACT-01：选 APP → 活动列表完整（抽查多包，含非导出活动）
+- **操作**：全局矩阵点任意手势 → 动作目录「启动指定 Activity」→「选择 APP → 活动浏览器」→ 依次选微信 / 支付宝 / 相机。
+- **判据**：
+  1. 每行 = APP 图标 + 主行命名（有内置/用户命名显命名，否则 Activity 短类名）+ 副行完整 `package/class`（小字、点按复制）+ 「导出 / 非导出」chip + 「试开启」「重命名」药丸钮。
+  2. 顶部搜索框按活动名 / 类名过滤即时生效；计数行显示「共 N 个活动」。
+  3. 抽查包的活动总数与 `adb shell dumpsys package <pkg> | grep -c Activity`（或 `cmd package dump`）同量级，且列表中确实出现 `exported=false` 的活动（chip 显示「非导出」）。
+  4. 大包（数百活动）滚动流畅、滚动到底自动追加分页（计数行「已显示 M 个」递增）。
+
+### ACT-02：试开启真实拉起目标活动
+- **操作**：在活动浏览器点某活动的「试开启」（至少抽 1 个非导出活动 + 1 个导出活动）。
+- **判据**：
+  1. 目标活动真实进入前台：`adb shell dumpsys window | grep mCurrentFocus` 切换为该组件。
+  2. UI 该行短暂高亮（primaryContainer）+ Toast「已拉起 …」。
+  3. 失败场景（如组件不存在）：Toast 显示具体错误原因（异常类名 + 消息），行高亮 errorContainer。
+  4. `logcat` 含 `KeyPilot: TRY_LAUNCH ok ...`（或 `TRY_LAUNCH FAILED ... -> <原因>`）。
+
+### ACT-03：重命名持久化（重启 / 杀进程后仍在）
+- **操作**：给某活动重命名（如「扫一扫」）→ 列表即时刷新 → `adb shell am force-stop io.github.rtzhang.keypilot` → 重开 App → 再 `adb reboot` → 重开 App。
+- **判据**：
+  1. APP 缓存：`adb shell "su -c 'cat /data/data/io.github.rtzhang.keypilot/files/keypilot_labels.json'"` 含该组件键与新命名。
+  2. 钩子镜像：`adb shell "su -c 'cat /data/system/keypilot_labels.json'"` 同步含该条目，且 `logcat` 出现 `KeyPilot: LABELS_UPDATE applied: N labels`。
+  3. force-stop 与重启后列表、矩阵显示仍为新命名。
+
+### ACT-04：绑定带命名活动，手势触发直达
+- **操作**：在活动浏览器点选行完成绑定 → 回矩阵确认该手势值文本 = 命名、副行 = 小字组件名 → 触发该手势（sendevent 注入）。
+- **判据**：
+  1. 前台切换到目标活动（`mCurrentFocus`）。
+  2. `logcat` 含 `KeyPilot: EXEC [<key>.<gesture>] ... -> Activity：<命名> (<pkg>/<short>)` 或 `启动 <命名>`。
+  3. 场景分流 Profile 卡的覆写摘要显示命名，并附小字组件名行。
+
+### ACT-05：导出 / 导入往返验证
+- **操作**：设置 → 活动命名管理 → 导出 JSON（保存为文件，如 `Download/keypilot_labels_export.json`）→ `adb pull` 核对 → 删除本地一条命名 → 导入该文件 → 再导出比对。
+- **判据**：
+  1. 导出文件为合法 JSON，条目数 = 本地命名数，字段符合 `keypilot.labels.v1`。
+  2. 导入补空缺成功（Toast「导入完成：新增 N 条」）；若存在冲突弹出「导入冲突提示」，选择覆盖后本地值被替换。
+  3. 往返后再次导出内容与原文件等价（条目数与 label 一致）。
+
+### ACT-06：回归（原有动作 / 手势 / v2 分流零破坏，抽测 ≥3 项）
+- **V2-REG-A（热更新回归）**：改任一手势绑定 → 立即触发生效；`/data/system/keypilot.json` 同步。
+- **V2-REG-B（v2 分流回归）**：套用 v2 相机预设 → 相机内短按 EK 触发快门（`resolved=profile:prof_camera_shutter`）。
+- **V2-REG-C（安全红线回归）**：长按电源键仍弹 `GlobalActionsDialogLite`；`POWER+VOL_DOWN` 仍截屏。
+- **V2-REG-D（桥命令不串扰）**：普通 `CONFIG_UPDATE`（无 `command`）与 `TRY_LAUNCH`/`LABELS_UPDATE` 混发，
+  配置仍正常落盘，日志无 `CONFIG_UPDATE unknown command`。
+
+### ACT-07：UI 自审截图（vision 审 → 修 → 复审）
+- **截图面**：活动编辑器（当前绑定卡 + 主路径按钮 + 高级折叠）、应用选择器（含复制 pill）、活动浏览器（搜索 + 行 + chip + 药丸钮）、重命名弹层、活动命名管理（我的 / 内置 / 导入导出）、全局矩阵（命名 + 组件副行）、场景卡（摘要 + 组件行）、深色模式。
+- **判据**：无控件碰撞 / 贴边 / 截断 / 圆角不一致 / 间距失序；行间距符合 8dp 节奏；值文本不重复标签名；发现的问题修后复审通过。
+
+### ACT-08：system_server 稳定性红线
+```bash
+adb shell pidof system_server   # 测试前后 PID 必须一致
+adb logcat -d | grep -E "KeyPilot: \[ERR\]|FATAL EXCEPTION|Watchdog"
+```
+- **判据**：PID 未变（零软重启）、无 `FATAL EXCEPTION` / `Watchdog` / `KeyPilot: [ERR]`；试开启失败全部被回执捕获而非抛进 system_server 主循环。

@@ -207,6 +207,32 @@ public final class SafetySettingsDialog {
             sheet.body.addView(openA11y, oLp);
         }
 
+        // ---- 5. Activity label manager (Activity 探测绑定器) ----
+        sheet.body.addView(UiTheme.makeDivider(activity));
+        sheet.body.addView(UiTheme.makeSectionHeader(activity, "活动命名与探测"));
+        TextView lmBtn = UiTheme.makeButton(activity, "活动命名管理（查看 / 编辑 / 导入导出）",
+                UiTheme.ButtonStyle.OUTLINED, new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        LabelManagerDialog.show(activity);
+                    }
+                });
+        LinearLayout.LayoutParams lmLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lmLp.topMargin = UiTheme.dp(activity, 8);
+        sheet.body.addView(lmBtn, lmLp);
+
+        TextView lmHint = UiTheme.makeText(activity,
+                "当前 " + LabelStore.userCount(activity) + " 条本地命名 · "
+                        + LabelStore.communityCount(activity) + " 条内置名单；"
+                        + "试开启与重命名入口在「启动指定 Activity → 活动浏览器」。",
+                12, false, p.onSurfaceVariant);
+        lmHint.setMaxLines(3);
+        LinearLayout.LayoutParams lhLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lhLp.topMargin = UiTheme.dp(activity, 8);
+        sheet.body.addView(lmHint, lhLp);
+
         // ---- Footer ----
         TextView cancelBtn = UiTheme.makeButton(activity, "取消", UiTheme.ButtonStyle.TEXT,
                 new View.OnClickListener() {

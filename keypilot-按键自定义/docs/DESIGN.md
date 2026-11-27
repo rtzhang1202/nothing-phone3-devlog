@@ -185,6 +185,64 @@
 
 ---
 
+### 3.4 活动命名 labels 协议（`keypilot.labels.v1`）
+
+> 用途：「Activity 探测绑定器」为每个 Activity 提供人类可读命名（如 `com.tencent.mm/.plugin.scanner.ui.BaseScanUI` → 扫一扫），
+> 用于活动浏览器、全局矩阵、场景卡显示。纯展示层，**不参与动作执行**。
+
+**存储三处**
+
+| 位置 | 角色 | 路径 |
+|---|---|---|
+| 随包内置名单 | 只读社区 / 内置命名 | `app/src/main/assets/community_labels.json` |
+| APP 侧缓存 | 用户命名读写真源（UI 用） | `/data/data/io.github.rtzhang.keypilot/files/keypilot_labels.json` |
+| 钩子侧镜像 | 备份 + 钩子 Toast/日志取名 | `/data/system/keypilot_labels.json` |
+
+**JSON 格式**（扁平 map；以 `_` 开头的键是元数据，加载时一律忽略）
+
+```json
+{
+  "_meta": { "format": "keypilot.labels.v1", "count": 1 },
+  "com.tencent.mm/.plugin.scanner.ui.BaseScanUI": {
+    "label": "扫一扫",
+    "source": "user",
+    "updatedAt": 1795411200000
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| 顶层键 | string | 组件键 `package/full.ClassName`；接受 `pkg/.相对类名` 简写，加载时展开为全限定类名 |
+| `label` | string | 必填显示名 |
+| `source` | string | `user`（用户命名）/ `community`（内置名单） |
+| `updatedAt` | long | Epoch 毫秒；内置名单可为 `0` |
+
+- **解析优先级**：`user` > `community` > `ActionSpec.label` > Activity 短类名（`pkg` 前缀剥离）。
+- **写入链路**：UI 改名 → 写 APP 缓存 → 发 `CONFIG_UPDATE` 广播（`command=LABELS_UPDATE`）→ `ConfigBridge`
+  以「写 `.tmp` → `fsync()` → `renameTo()`」原子镜像到 `/data/system/keypilot_labels.json`（与配置落盘同一套原子写）。
+- **导入 / 导出**：设置页「活动命名管理」走 SAF（`ACTION_CREATE_DOCUMENT` / `ACTION_OPEN_DOCUMENT`），
+  导入先补空缺（fill-gaps），与本地冲突时弹提示，可选「覆盖冲突项」；导出另支持文本分享。
+
+---
+
+### 3.5 `CONFIG_UPDATE` 桥命令（`TRY_LAUNCH` / `LABELS_UPDATE`）
+
+广播 action 仍为 `io.github.rtzhang.keypilot.CONFIG_UPDATE`。当 extras 含 `command` 时按命令分发；
+否则按整份配置更新处理（v1 / v2 既有行为完全不变）。
+
+| 命令 | Extras | 钩子端行为（system_server, uid=1000） | 回执 |
+|---|---|---|---|
+| `TRY_LAUNCH` | `try_package`, `try_class`, `try_token` | `ComponentName` + `FLAG_ACTIVITY_NEW_TASK` → `startActivityAsUser(CURRENT)`；**可拉起 `exported=false` 的非导出 Activity**；在 `KeyPilot-ConfigIO` 线程执行并全程 `try/catch(Throwable)`（稳定性红线） | `StatusProvider.call("try_launch_result", token, {ok, error, component})` → APP 主线程回调 |
+| `LABELS_UPDATE` | `labels_json` | 解析为 `JSONObject` 缓存（供 Toast/日志取名）+ 原子写 `/data/system/keypilot_labels.json` | `HookLog.report` 写入运行日志 |
+
+- 失败原因（`SecurityException` / `ActivityNotFoundException` / …）原样回传给 UI 展示；
+  6s 未回执 UI 判定「钩子未响应（请确认模块已启用并重启）」。
+- `ActionExecutor.startActivityStrict()` 是 `TRY_LAUNCH` 专用的严格版 `startActivity`：不吞异常、
+  解包 `InvocationTargetException` 后重抛真实 cause；手势执行路径仍用原 `startActivityAsCurrentUser`（保持不抛）。
+
+---
+
 ## 4. 动作目录与执行器实现表（`system_server` uid=1000）
 
 所有自定义动作均在独立 `HandlerThread("KeyPilot-Exec")` 上以 `Binder.clearCallingIdentity()` 执行，绝不阻塞 `InputDispatcher` 线程：

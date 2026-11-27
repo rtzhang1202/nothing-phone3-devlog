@@ -44,6 +44,8 @@ import io.github.rtzhang.keypilot.ui.ActionIcons;
 import io.github.rtzhang.keypilot.ui.ActionPickerDialog;
 import io.github.rtzhang.keypilot.ui.AppIconCache;
 import io.github.rtzhang.keypilot.ui.ConflictDetector;
+import io.github.rtzhang.keypilot.ui.LabelManagerDialog;
+import io.github.rtzhang.keypilot.ui.LabelStore;
 import io.github.rtzhang.keypilot.ui.ProfileEditorDialog;
 import io.github.rtzhang.keypilot.ui.SafetySettingsDialog;
 import io.github.rtzhang.keypilot.ui.UiTheme;
@@ -114,6 +116,34 @@ public class MainActivity extends Activity {
         super.onResume();
         refreshStatus();
         refreshConflictBanner();
+    }
+
+    /** SAF round-trips for the 活动命名管理 (export / import JSON). */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (LabelManagerDialog.handleActivityResult(this, requestCode, resultCode, data)) {
+            // labels changed -> matrix / profile cards must re-resolve display names
+            renderConfigToUi();
+        }
+    }
+
+    /** Small component line ("pkg/class") for launch_activity bindings on a profile card. */
+    private static String collectActivityComponents(ActionProfile prof) {
+        StringBuilder sb = new StringBuilder();
+        for (KeyId k : KeyId.values()) {
+            for (GestureType g : GestureType.values()) {
+                ActionSpec s = prof.getBinding(k, g);
+                if (s == null || s.type != ActionType.LAUNCH_ACTIVITY
+                        || s.packageName == null || s.className == null) {
+                    continue;
+                }
+                if (sb.length() > 0) sb.append(" · ");
+                sb.append(s.packageName).append("/")
+                        .append(LabelStore.shortClass(s.packageName, s.className));
+            }
+        }
+        return sb.length() == 0 ? null : sb.toString();
     }
 
     private void applySystemBars() {
@@ -814,12 +844,34 @@ public class MainActivity extends Activity {
             // Subtle separator between target apps & overrides
             card.addView(UiTheme.makeDivider(this));
 
-            // Row 3: Concise override summary
-            TextView ovTv = UiTheme.makeText(this, prof.overrideSummary(), 13, true,
+            // Row 3: Concise override summary (activity labels resolved live from LabelStore)
+            TextView ovTv = UiTheme.makeText(this, prof.overrideSummary(
+                    new ActionProfile.SpecNamer() {
+                        @Override
+                        public String nameFor(ActionSpec spec) {
+                            if (spec == null || spec.type != ActionType.LAUNCH_ACTIVITY) {
+                                return null;
+                            }
+                            return LabelStore.displayLabel(MainActivity.this, spec);
+                        }
+                    }), 13, true,
                     prof.enabled ? palette.primary : palette.onSurfaceVariant);
             ovTv.setMaxLines(3);
             ovTv.setEllipsize(TextUtils.TruncateAt.END);
             card.addView(ovTv);
+
+            // Row 3b: small component line for bound activities
+            String actComponents = collectActivityComponents(prof);
+            if (actComponents != null) {
+                TextView compTv = UiTheme.makeText(this, actComponents, 10, false,
+                        palette.onSurfaceVariant);
+                compTv.setMaxLines(2);
+                compTv.setEllipsize(TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams compLp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                compLp.topMargin = UiTheme.dp(this, 4);
+                card.addView(compTv, compLp);
+            }
 
             card.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { openProfileEditor(prof); }
@@ -1063,7 +1115,11 @@ public class MainActivity extends Activity {
                     // Show owning app name / subtitle only when informative
                     String ownerPkg = ActionIcons.resolveOwnerPackage(raw);
                     String sub = null;
-                    if (ownerPkg != null && !raw.isSystem()) {
+                    if (raw.type == ActionType.LAUNCH_ACTIVITY && raw.className != null) {
+                        // named activity: small component line under the label
+                        sub = raw.packageName + "/"
+                                + LabelStore.shortClass(raw.packageName, raw.className);
+                    } else if (ownerPkg != null && !raw.isSystem()) {
                         String ownerName = AppIconCache.getAppName(this, ownerPkg);
                         if (!ownerName.equals(h.valueView.getText().toString())) {
                             sub = ownerName + " · " + ownerPkg;

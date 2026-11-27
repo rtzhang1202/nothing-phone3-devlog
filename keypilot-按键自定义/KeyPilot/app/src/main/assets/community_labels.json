@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "format": "keypilot.labels.v1",
+    "title": "KeyPilot 活动命名社区 / 内置名单",
+    "format_note": "顶层为扁平 map：键 = 组件键 <package>/<full.ClassName>（支持 Android 简写 pkg/.ClassName，加载时自动展开为全限定类名）；值 = {label, source, updatedAt}。以下划线 '_' 开头的键是元数据，加载时一律忽略。",
+    "schema": {
+      "label": "显示名（必填，如 扫一扫）",
+      "source": "user | community（本文件固定 community）",
+      "updatedAt": "Epoch 毫秒，内置名单可为 0"
+    },
+    "priority": "用户命名 (source=user) > 本内置名单 (source=community) > Activity 短类名",
+    "readonly": "本文件随 APK 打包、只读；用户增改写入 app 侧缓存 files/keypilot_labels.json 并镜像到 /data/system/keypilot_labels.json",
+    "count": 4
+  },
+  "com.tencent.mm/.plugin.scanner.ui.BaseScanUI": {
+    "label": "扫一扫",
+    "source": "community",
+    "updatedAt": 0
+  },
+  "com.eg.android.AlipayGphone/.app.ScanActivity": {
+    "label": "支付宝扫一扫",
+    "source": "community",
+    "updatedAt": 0
+  },
+  "com.eg.android.AlipayGphone/.AlipayLogin": {
+    "label": "支付宝首页",
+    "source": "community",
+    "updatedAt": 0
+  },
+  "com.nothing.camera/.MainActivity": {
+    "label": "Nothing 相机",
+    "source": "community",
+    "updatedAt": 0
+  }
+}

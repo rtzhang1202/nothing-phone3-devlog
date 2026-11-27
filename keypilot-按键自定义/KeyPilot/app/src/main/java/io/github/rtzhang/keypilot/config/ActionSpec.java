@@ -218,7 +218,10 @@ public final class ActionSpec {
                 }
                 break;
             case LAUNCH_ACTIVITY:
-                if (packageName != null && className != null) {
+                if (label != null && packageName != null && className != null) {
+                    base = "Activity：" + label + " (" + packageName + "/"
+                            + shortenClass(packageName, className) + ")";
+                } else if (packageName != null && className != null) {
                     base = "Activity：" + packageName + "/" + shortenClass(packageName, className);
                 } else {
                     base = "启动指定 Activity";

@@ -6,6 +6,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -19,6 +21,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import io.github.rtzhang.keypilot.config.KeyPilotConfig;
+
 /**
  * Lightweight IPC channel allowing system_server / ntessentialrecorder hooks to report
  * heartbeats and execution logs back to the KeyPilot app UI without needing self-hooking.
@@ -30,6 +34,19 @@ public class StatusProvider extends ContentProvider {
     public static final String LOG_FILENAME = "status.log";
     public static final String HEARTBEAT_FILENAME = "heartbeat.txt";
     private static final int MAX_LOG_LINES = 160;
+
+    /** Callback for TRY_LAUNCH results returned by system_server (always on the main thread). */
+    public interface TryLaunchListener {
+        void onTryLaunchResult(String token, boolean ok, String error, String component);
+    }
+
+    private static volatile TryLaunchListener sTryLaunchListener;
+    private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
+
+    /** Registers (or clears with null) the single TRY_LAUNCH result listener. */
+    public static void setTryLaunchListener(TryLaunchListener listener) {
+        sTryLaunchListener = listener;
+    }
 
     @Override
     public boolean onCreate() {
@@ -53,10 +70,33 @@ public class StatusProvider extends ContentProvider {
                 Bundle out = new Bundle();
                 out.putBoolean("ok", true);
                 return out;
+            } else if (KeyPilotConfig.METHOD_TRY_LAUNCH_RESULT.equals(method)) {
+                deliverTryLaunchResult(arg, extras);
+                Bundle out = new Bundle();
+                out.putBoolean("ok", true);
+                return out;
             }
         } catch (Throwable ignored) {
         }
         return null;
+    }
+
+    private static void deliverTryLaunchResult(final String token, final Bundle extras) {
+        final TryLaunchListener l = sTryLaunchListener;
+        if (l == null || extras == null) return;
+        MAIN_HANDLER.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    l.onTryLaunchResult(
+                            token,
+                            extras.getBoolean("ok", false),
+                            extras.getString("error"),
+                            extras.getString("component"));
+                } catch (Throwable ignored) {
+                }
+            }
+        });
     }
 
     private static synchronized void appendLog(Context ctx, String msg) {

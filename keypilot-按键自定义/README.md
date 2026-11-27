@@ -1,11 +1,11 @@
-# 按键自定义（KeyPilot 框架）—— 从四按键全息勘察到上下文感知与 Material 3 落地
+# 按键自定义（KeyPilot 框架）—— 从四按键全息勘察到上下文感知、Material 3 与 Activity 自动探测
 
 > 设备：Nothing Phone (3)（A024，代号 Metroid）| 系统：Nothing OS 5.0（Android 17，SDK 37）
 > Build：`C5.0-260924-2115` | 内核：`6.6.127-android15-8` | Magisk v31.1 + JingMatrix/Vector v2.2（LSPosed）
-> 记录日期：2026-11-24 – 2026-11-25
-> 状态：✅ **已定稿** —— 四按键静态/动态全息勘察 + 离线 DEX 反汇编 + **KeyPilot v1（13/13 过）** + **v2 P1 上下文分流（11/11 过）** + **Material 3 全界面 5 轮真机视觉自审（10/10 全绿）**全部闭环
-> 产物 APK：[`release/KeyPilot.apk`](release/KeyPilot.apk)（SHA256：`8737b7838eee94f7cc10f32539ecb95f74517e1699d7c032cb866bb173d40d8b`）
-> 本机全量存证：`NothingPhone3-按键探查/`（127 份勘察+PoC 存证）· `KeyPilot/verify*/`（三期全量截图与 logcat）
+> 记录日期：2026-11-24 – 2026-11-27
+> 状态：✅ **已定稿** —— 四按键静态/动态全息勘察 + 离线 DEX 反汇编 + **KeyPilot v1（13/13 过）** + **v2 P1 上下文分流（11/11 过）** + **Material 3 全界面 5 轮真机视觉自审（10/10 全绿）** + **Activity 探测绑定器（7/7 判据全绿、回归 5/5 零破坏）**全部闭环
+> 产物 APK：[`release/KeyPilot.apk`](release/KeyPilot.apk)（SHA256：`896ab6d1297779a5dc0bb3e66af5e10f5609d6b852c9865090df58ed9b5a6840`）
+> 本机全量存证：`NothingPhone3-按键探查/`（127 份勘察+PoC 存证）· `KeyPilot/verify*/`（四期全量截图与 logcat）
 
 ---
 
@@ -89,6 +89,7 @@ Nothing Phone (3) 机身左侧多出了一颗专属物理按键 **Essential Key*
   - `in_app_preset`（中文高频内置功能包）：开箱即用直达 **支付宝扫一扫 / 付款码 / 收款码**、**微信扫一扫 / 收付款**、相机快门、Nothing 录音机。
   - `deep_link`（URI Scheme 直达）、`media_transport`（`MediaSessionManager` 精准媒体控制 + `simulateMediaButton` 兼容 Spotify）、`key_inject`（自定义 KeyCode 注入，如阅读器 `PAGE_UP`/`PAGE_DOWN`）、`partial_screenshot`（区域截图）、`ringer_cycle`（侧键轻 Toast 增强）、`expand_notifications` / `expand_qs`、`context_var_broadcast`（向 Tasker/MacroDroid 导出 `${fg_pkg}` / `${fg_activity}`）。
 - **场景模板库（B1–B8）**：内置相机内短按快门（B4）、音乐 App 内切歌（B5）、游戏防误触还原原生（B6）、阅读器翻页（B1）、通话/录音 PTT 静音（B3）、前台变量广播（B8），以及标为实验级的 P2 导航缩放（B2）与微信按住说话（B7）。
+- **`launch_activity` 交互升级（v2.1 Activity 探测绑定器）**：不再要求用户手填 `包名/类名`，改为「选 APP → 活动浏览器自动枚举（含非导出）→ 试开启验证 → 点选绑定」，命名可持久化并导出/导入；完整设计与验收见第六章。
 
 ### 3.3 6 项防坑开关（升格为 P1 必做基建）
 1. **全局 App 黑名单（`blacklistPackages`）**：命中银行/支付/游戏等包名在最前端 0ms 纯原生旁路。
@@ -100,7 +101,7 @@ Nothing Phone (3) 机身左侧多出了一颗专属物理按键 **Essential Key*
 
 ---
 
-## 四、三期真机验证结果总览
+## 四、真机验证结果总览（v1 / v2 P1 / Material 3 / Activity 探测绑定器）
 
 全部测试均在 Nothing Phone (3)（`C5.0-260924-2115`）真机闭环完成，全程 `system_server` 零崩溃、Clash/`tun0` 正常、10 个 Magisk 模块 0 disable：
 
@@ -109,6 +110,7 @@ Nothing Phone (3) 机身左侧多出了一颗专属物理按键 **Essential Key*
 | **v1 基建实测**（2026-11-24） | `TC-01 ~ TC-07`（EK 三手势、音量±双按、电源双按盖过 NothingTweaks、热更新+冷启动）<br>`REG-01 ~ REG-06`（音量/电源原生、电源长按菜单、双组合键护盾、总开关关闭恢复） | **13 / 13 PASS**<br>（7 TC + 6 REG） | ① **手电筒二次长按仍 ON**：`TorchCallback` 初始化竞态覆写 `sTorchEnabled`，改为先定目标 `cameraId` + 500ms 去抖后 `ON → OFF` 稳定通过；<br>② **Vector 作用域命名坑**：`system_server` 在 Vector 数据库中须加 `system/0`；<br>③ **节点漂移**：重启后 `event2/3` 漂移至 `event1/2`，KeyPilot 按 `scanCode`/`keyCode` 识别天然免疫 | [`docs/TESTPLAN_V1_RESULTS.md`](docs/TESTPLAN_V1_RESULTS.md) |
 | **v2 P1 实测**（2026-11-25） | `V2-TC-01 ~ 06`（非相机开相机→相机内同手势快门、支付宝扫一扫直达、QQ 音乐音量满格切歌、OS 5.1 `yield_single_click` 热切换、分层继承+闪光灯占用兜底）<br>`V2-REG-01 ~ 05`（黑名单 0ms 旁路、`passthroughDefault` 不吞键、关闭 Profiles 回退 v1、安全红线①②） | **11 / 11 PASS**<br>（6 TC + 5 REG） | ① **相机占用闪光灯异常解包**：`Method.invoke` 将 `CameraAccessException(MAX_CAMERAS_IN_USE)` 包进 `InvocationTargetException`，解包 `getCause()` 后零 `[ERR]` 并弹友好提示「相机占用中，无法切换手电筒」；<br>② **Nothing Camera 快门定案**：实证 `KEYCODE_CAMERA (27)` 首次即成片（`38→39`）且不与音量缩放冲突，已升级为 `com.nothing.camera` 首选策略 | [`docs/TESTPLAN_V2_RESULTS.md`](docs/TESTPLAN_V2_RESULTS.md) |
 | **Material 3 UI 美化自审**（2026-11-25） | 浅色/深色双模式、双 Tab、4×3 矩阵、动作/预设/应用选择器、场景编辑器、防坑开关弹窗 | **10 / 10 GREEN**<br>（5 轮自审闭环） | ① `MaxHeightScrollView` 解决弹窗底栏裁切；<br>② 零 padding 自绘 `ThumbCircleDrawable` 根治 Android `Switch` 误把 `InsetDrawable` 当光学缩进导致滑块外凸；<br>③ `ScrollView.setClipToPadding(true)` 消除滚动与状态栏碰撞；<br>④ 底部弹窗改全屏透明遮罩达成 Edge-to-Edge 零灰缝贴底；<br>⑤ 独立复审补修（Round 5）：精简状态条文案与解除 Profile 标题/副标题单行截断 | [`docs/UI_AUDIT.md`](docs/UI_AUDIT.md) |
+| **Activity 探测绑定器实测**（2026-11-27） | `ACT-01 ~ ACT-08`（活动枚举完整性、非导出试开启、重命名持久化、绑定直达、导出/导入、回归、UI 自审、稳定性红线） | **7 / 7 GREEN**<br>（回归 5/5 零破坏） | ① 导入 MIME 过宽（`*/*` + OPEN_DOCUMENT）导致静默失败 → 收敛 `application/json`；<br>② 试开启 Toast 显示短类名 → 回查 `LabelStore` 回填命名；<br>③ `startActivity` 对不存在组件不抛异常 → `getActivityInfo()` 预校验后回执 | [`docs/ACTIVITY-BINDER-RESULTS.md`](docs/ACTIVITY-BINDER-RESULTS.md) |
 
 ---
 
@@ -129,13 +131,107 @@ KeyPilot 坚持**零 Gradle / 零 Material 依赖**，全程用纯 Android SDK +
 
 ---
 
-## 六、安装、激活与使用指南
+## 六、Activity 探测绑定器（自动探测 / 试开启 / 重命名 / 社区反哺）
 
-### 6.1 直接安装（推荐）
+> **痛点**：`launch_activity` 要求手填 `包名/完整类名`，而用户既不知道 Activity 类名、也无从在桌面上看到它；对**非导出** Activity，`adb shell am start -n com.tencent.mm/.plugin.scanner.ui.BaseScanUI` 更是直接 `SecurityException`。本章把「手填类名」改造成「选 APP → 自动罗列 → 试开启验证 → 点选绑定」，并沉淀一套可导出、可反哺社区的活动命名协议。
+
+### 6.1 功能设计
+
+| 能力 | 实现 |
+|---|---|
+| 活动发现 | `PackageManager.GET_ACTIVITIES` 枚举目标包全部 Activity（含 `exported=false`），纯本地、零在线依赖 |
+| 选择路径 | 动作目录「启动指定 Activity」→（主路径）选择 APP → 活动浏览器 → 点行绑定；旧手填表单降级为「高级」折叠区，历史绑定 100% 兼容 |
+| 应用选择 | 复用 M3 应用选择器：真实图标 + 应用名 + 包名，新增「复制」药丸钮一键复制包名 |
+| 搜索 / 懒加载 | 顶部搜索按**活动命名 / 类名**即时过滤（不区分大小写）；列表 60 条/页，滚动到底自动追加，计数行实时显示「共 N 个活动 · 已显示 M 个」 |
+| 行结构 | APP 图标 · 主行（用户/社区命名，未命名回退短类名）· 副行完整组件 `package/class`（10sp，点按复制）· `导出/非导出` chip · 「试开启」「重命名」双药丸钮 |
+| 命名解析 | 持久化到 APP 缓存并镜像 `/data/system/keypilot_labels.json`；优先级 `user > community > ActionSpec.label > 短类名` |
+| 绑定回显 | 全局矩阵值文本显示命名、副行小字显示组件；场景分流卡摘要显示命名 + 独立组件行 |
+
+实测规模（`PackageManager` 口径）：**微信 2047 条**、支付宝 949 条、Nothing 相机 16 条；`BaseScanUI` 搜索 1 条、`scan` 17 条。
+
+### 6.2 用户流程
+
+```text
+手势行 →「启动指定 Activity」
+   → 选择 APP（图标 / 名称 / 包名，包名可一键复制）
+   → 活动浏览器：自动罗列全部 Activity（导出 + 非导出）
+        ├─ 搜索 scan → 17 条；BaseScanUI → 1 条
+        ├─ 试开启 → Toast「已拉起 微信扫一扫」，目标页真实进入前台
+        └─ 重命名 → 输入「微信扫一扫」→ 列表即时刷新并持久化
+   → 点选行完成绑定
+   → 全局矩阵：主行「微信扫一扫」+ 副行 com.tencent.mm/.plugin.scanner.ui.BaseScanUI
+```
+
+### 6.3 独家能力：非导出 Activity 的「试开启」
+
+| 路径 | 执行身份 | 结果 |
+|---|---|---|
+| `adb shell am start -n com.tencent.mm/.plugin.scanner.ui.BaseScanUI` | shell（uid 2000） | ❌ `SecurityException: Permission Denial: … not exported from uid 10328` |
+| `CONFIG_UPDATE` + `command=TRY_LAUNCH`（KeyPilot 广播桥） | system_server（uid 1000） | ✅ `TRY_LAUNCH ok`，`mCurrentFocus=com.tencent.mm/…BaseScanUI` |
+
+桥实现四个关键点：
+1. **命令多路复用**：`CONFIG_UPDATE` extras 含 `command` 时按命令分发（`TRY_LAUNCH` / `LABELS_UPDATE`），不含则仍按整份配置热更新 —— v1/v2 既有链路零改动。
+2. **身份切换**：`Binder.clearCallingIdentity()` → `startActivityAsUser(intent, CURRENT_USER)` → `restoreCallingIdentity()`。ActivityManager 按 system_server 的 `START_ANY_ACTIVITY` 权限校验，因此 `exported=false` 的活动也能拉起。
+3. **严格失败语义**：`PackageManager.getActivityInfo()` 先预校验组件存在性（`startActivity` 对**不存在**的组件并不抛异常、只返回 result code，极易误报成功）；`startActivityStrict()` 解包 `InvocationTargetException` 后重抛真实 cause，失败回执 `组件不存在: … (NameNotFoundException)`。
+4. **稳定性红线**：全程跑在 `KeyPilot-ConfigIO` 后台线程并 `try/catch(Throwable)`，结果经 `StatusProvider.call("try_launch_result", token)` 回执；UI 侧 6s 未回执判「钩子未响应」，异常绝不进入 system_server 主循环。
+
+### 6.4 命名持久化与社区反哺
+
+`keypilot.labels.v1` 协议（完整字段见 [`docs/DESIGN.md`](docs/DESIGN.md) §3.4）：
+
+| 位置 | 角色 | 路径 |
+|---|---|---|
+| 随包名单 | 只读社区 / 内置命名 | [`KeyPilot/app/src/main/assets/community_labels.json`](KeyPilot/app/src/main/assets/community_labels.json)（4 条：微信扫一扫、支付宝扫一扫 / 首页、Nothing 相机） |
+| APP 缓存 | 用户命名读写真源 | `/data/data/io.github.rtzhang.keypilot/files/keypilot_labels.json` |
+| 钩子镜像 | 重启备份 / Toast / 日志取名 | `/data/system/keypilot_labels.json`（`system:system 0600`） |
+
+- **格式**：扁平 map，键 = `package/full.ClassName`（兼容 `pkg/.Cls` 简写，加载时展开为全限定类名）；值 = `{label, source: user|community, updatedAt}`；`_meta` 等下划线前缀键为元数据，加载时忽略。
+- **写入链路**：改名 → APP 缓存 → `LABELS_UPDATE` 广播 → `ConfigBridge` 以 `.tmp → fsync → rename` 原子镜像；force-stop 与重启后矩阵、场景卡仍显命名。
+- **社区反哺**：设置 →「活动命名管理」查看 / 编辑 / 删除本地命名，并折叠查看内置名单；导出 JSON（SAF `ACTION_CREATE_DOCUMENT`，另提供文本分享），导入（SAF `ACTION_OPEN_DOCUMENT`，MIME 收敛 `application/json`）采用**补空缺优先**策略，冲突时弹「导入冲突提示」并可选「覆盖冲突项」——同一份 JSON 即可在用户间流转，逐步把常用 Activity 沉淀成社区名单。
+
+### 6.5 真机验收（ACT-01 ~ ACT-08，7/7 全绿）
+
+设备 Nothing Phone (3) / Android 17 / NOS 5.0；测试窗口 2026-11-27 00:38–02:05（CST）；全量存证 `verify_activity/`（截图 + XML + `stage*.json` + logcat）：
+
+| # | 判据 | 结果 | 关键证据 |
+|---|---|---|---|
+| ① | activities_listed（列表完整） | ✅ | 微信 2047 / 支付宝 949 / 相机 16；`非导出` chip 与搜索过滤（`scan`→17、`BaseScanUI`→1）；微信首屏 60 条滚动追加 |
+| ② | try_launch（试开启） | ✅ | 非导出 `BaseScanUI` 经桥拉起成功（同组件 shell `am start` 报 SecurityException）；Toast「已拉起 微信扫一扫」 |
+| ③ | rename_persist（重命名持久化） | ✅ | force-stop + 重启后仍显命名；APP 缓存与 `/data/system/keypilot_labels.json` 内容一致 |
+| ④ | bind_trigger（绑定直达） | ✅ | `volume_up.long` → `EXEC … -> Activity：微信扫一扫`，前台切至目标；场景卡显命名 + 小字组件 |
+| ⑤ | export_import（导出导入） | ✅ | 261B `keypilot.labels.v1` 导出 → 删除 → 导入补缺 → 冲突提示 → 覆盖回原值 |
+| ⑥ | regression（回归） | ✅ 5/5 | v1 截屏、电源长按红线、`POWER+VOL_DOWN` 组合键、普通 `CONFIG_UPDATE`、v2 相机分流全部零破坏 |
+| ⑦ | ui_audit（UI 自审） | ✅ | 两轮 vision 审（审 → 修 → 复审）无碰撞 / 贴边 / 截断；修复试开启 Toast 未回填命名 |
+
+3 轮迭代（每轮一个根因）：
+
+| # | 根因 | 修复 |
+|---|---|---|
+| 1 | 导入用 `ACTION_OPEN_DOCUMENT` + `*/*` → DocumentsUI 弹「打开方式」不回传 URI，导入静默失败 | 导入 MIME 收敛为 `application/json` |
+| 2 | 试开启成功 Toast 显示短类名，未体现用户命名 | `findName()` 回查 `LabelStore`（user > community > 短类名） |
+| 3 | `startActivity` 对不存在的组件不抛异常 → 误报「ok」 | 钩子端 `getActivityInfo()` 预校验，缺失回执 `组件不存在` |
+
+稳定性：单次开机会话内 `system_server` PID 恒定；全程 0 `FATAL EXCEPTION`、0 `KeyPilot: [ERR]`（两次 PID 变化均来自计划内重启）。产物 `release/KeyPilot.apk` SHA256 `896ab6d1…`。
+
+### 6.6 真机截图
+
+| 活动浏览器（微信 2047 条 · 60 条/页懒加载） | 命名回填 + 非导出 chip + 双药丸钮 |
+|---|---|
+| ![活动浏览器](screenshots/09_activity_browser_2047.png) | ![重命名行](screenshots/10_activity_renamed_row.png) |
+
+| 试开启 Toast（非导出活动直达） | 绑定后矩阵显示命名 + 小字组件 |
+|---|---|
+| ![试开启](screenshots/11_trylaunch_toast.png) | ![矩阵回显](screenshots/12_matrix_bound_label.png) |
+
+---
+
+## 七、安装、激活与使用指南
+
+### 7.1 直接安装（推荐）
 1. 下载 [`release/KeyPilot.apk`](release/KeyPilot.apk) 并核对 [`release/KeyPilot.apk.sha256`](release/KeyPilot.apk.sha256)：
    ```bash
    sha256sum release/KeyPilot.apk
-   # 预期：8737b7838eee94f7cc10f32539ecb95f74517e1699d7c032cb866bb173d40d8b
+   # 预期：896ab6d1297779a5dc0bb3e66af5e10f5609d6b852c9865090df58ed9b5a6840
    adb install -r release/KeyPilot.apk
    ```
 2. 在 **LSPosed / Vector 管理器** 中启用 **KeyPilot**，勾选作用域：
@@ -146,7 +242,7 @@ KeyPilot 坚持**零 Gradle / 零 Material 依赖**，全程用纯 Android SDK +
    - 点 **「v2 相机预设」** 一键体验「非相机短按 EK 打开相机 → 进入相机同手势变快门、双按支付宝扫一扫、长按手电筒、音乐 App 切歌、游戏防误触」。
    - 点右上角 **「防坑开关」** 配置银行/支付黑名单、息锁屏开关与 Nothing OS 5.1 共存模式。
 
-### 6.2 从源码自行构建
+### 7.2 从源码自行构建
 源码位于 [`KeyPilot/`](KeyPilot/)（已排除 keystore 与编译中间产物，首次运行会自动生成本地签名证书）：
 ```bash
 cd KeyPilot
@@ -157,7 +253,7 @@ bash build.sh
 
 ---
 
-## 七、后续演进路线图（P2 / P3）
+## 八、后续演进路线图（P2 / P3）
 
 详细技术论证见 [`docs/V2-CONTEXT-RESEARCH.md`](docs/V2-CONTEXT-RESEARCH.md)、[`docs/RESEARCH-community.md`](docs/RESEARCH-community.md) 与 [`docs/V2-PLAN.md`](docs/V2-PLAN.md)：
 
@@ -169,28 +265,30 @@ bash build.sh
 
 ---
 
-## 八、证据与文档索引
+## 九、证据与文档索引
 
-### 8.1 仓库内文档与资产（本章目录）
+### 9.1 仓库内文档与资产（本章目录）
 | 路径 | 说明 |
 |---|---|
 | [`KeyPilot/`](KeyPilot/) | 完整源码快照（`app/`、`magisk/`、`scripts/`、`build.sh`，不含 keystore 与 `out/`） |
-| [`release/KeyPilot.apk`](release/KeyPilot.apk) + [`.sha256`](release/KeyPilot.apk.sha256) | 最终签名安装产物（v2+v3，SHA256 `8737b7838e...`） |
-| [`docs/DESIGN.md`](docs/DESIGN.md) | KeyPilot v1 总体架构、钩点选型与 JSON 协议规范 |
-| [`docs/TESTPLAN.md`](docs/TESTPLAN.md) | v1 7 项功能 + 6 项原生/安全红线测试计划 |
+| [`release/KeyPilot.apk`](release/KeyPilot.apk) + [`.sha256`](release/KeyPilot.apk.sha256) | 最终签名安装产物（v2+v3，SHA256 `896ab6d1...`） |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | KeyPilot v1/v2 总体架构、钩点选型、JSON 协议规范（含 §3.4 labels 协议、§3.5 `TRY_LAUNCH` 桥命令） |
+| [`docs/TESTPLAN.md`](docs/TESTPLAN.md) | v1/v2 测试计划 + Activity 探测绑定器 ACT-01 ~ ACT-08 测试矩阵 |
 | [`docs/V2-CONTEXT-RESEARCH.md`](docs/V2-CONTEXT-RESEARCH.md) | v2 全网技术机制调研（前台追踪 / 快门注入 / Shortcut / 无障碍对比） |
 | [`docs/RESEARCH-community.md`](docs/RESEARCH-community.md) | 社区 22 用例、竞品踩坑实证与 6 项防坑开关来源 |
 | [`docs/V2-PLAN.md`](docs/V2-PLAN.md) | v2 产品规划与 P1/P2/P3 分期路线图（v1.1 定稿） |
 | [`docs/TESTPLAN_V1_RESULTS.md`](docs/TESTPLAN_V1_RESULTS.md) | v1 真机实测报告（13/13 PASS） |
 | [`docs/TESTPLAN_V2_RESULTS.md`](docs/TESTPLAN_V2_RESULTS.md) | v2 P1 真机实测报告（11/11 PASS） |
 | [`docs/UI_AUDIT.md`](docs/UI_AUDIT.md) | Material 3 全界面 5 轮真机视觉自审报告（10/10 GREEN） |
-| [`screenshots/`](screenshots/) | 8 张精选真机截图（浅/深色 M3、底部弹窗、相机上下文分流实测） |
+| [`docs/ACTIVITY-BINDER-RESULTS.md`](docs/ACTIVITY-BINDER-RESULTS.md) | Activity 探测绑定器验收报告（7/7 判据、回归 5/5、3 轮迭代） |
+| [`screenshots/`](screenshots/) | 12 张精选真机截图（浅/深色 M3、相机上下文分流、活动浏览器/试开启/命名回显） |
 
-### 8.2 本机全量原始存证索引（未全量入库以控制仓库体积）
+### 9.2 本机全量原始存证索引（未全量入库以控制仓库体积）
 - **四按键勘察全量档案（127 文件）**：`D:\Hermes Desktop\NothingPhone3-按键探查\`
   - 分报告与总报告：`P1-输入静态勘察.md`、`P2-触发行为实测.md`、`00-按键总报告.md`、`EssentialKey-自定义方案.md`（P4 离线 DEX 反汇编 + 6 路线矩阵 + PoC-1a/1b/2）
   - 原始 Dump（37 份）+ P2 动态前后截图/XML/logcat/WakeLock（88 份）
-- **KeyPilot 三期实测原始存证**：
+- **KeyPilot 四期实测原始存证**：
   - v1 矩阵全量前后截图、XML、logcat 与 `report.json`：`D:\Hermes Desktop\KeyPilot\verify\`
   - v2 P1 矩阵全量前后截图、XML、logcat 与 `report_v2.json`：`D:\Hermes Desktop\KeyPilot\verify_v2\`
   - M3 UI 全 10 屏高清截图与自动抓屏脚本：`D:\Hermes Desktop\KeyPilot\verify_ui\`
+  - Activity 探测绑定器全量截图、XML、`stage*.json`、logcat 与 `REPORT.md`：`D:\Hermes Desktop\KeyPilot\verify_activity\`

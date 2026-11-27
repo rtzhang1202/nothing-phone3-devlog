@@ -27,6 +27,22 @@ public final class KeyPilotConfig {
     public static final String SYSTEM_CONFIG_PATH = "/data/system/keypilot.json";
     public static final String APP_CONFIG_FILENAME = "keypilot_config.json";
 
+    // ---- CONFIG_UPDATE bridge commands (docs/DESIGN.md §3.5) ----
+    /** When present the broadcast is a command instead of a full config payload. */
+    public static final String EXTRA_COMMAND = "command";
+    /** Try-launch a (possibly non-exported) activity from system_server. */
+    public static final String CMD_TRY_LAUNCH = "TRY_LAUNCH";
+    /** Push the activity label map to the hook-side mirror file. */
+    public static final String CMD_LABELS_UPDATE = "LABELS_UPDATE";
+    public static final String EXTRA_TRY_PACKAGE = "try_package";
+    public static final String EXTRA_TRY_CLASS = "try_class";
+    public static final String EXTRA_TRY_TOKEN = "try_token";
+    public static final String EXTRA_LABELS_JSON = "labels_json";
+    /** Hook-side mirror of the activity labels (system_server uid=1000). */
+    public static final String SYSTEM_LABELS_PATH = "/data/system/keypilot_labels.json";
+    /** StatusProvider.call() method used by the hook to return a TRY_LAUNCH result. */
+    public static final String METHOD_TRY_LAUNCH_RESULT = "try_launch_result";
+
     public static final int DEFAULT_LONG_PRESS_MS = 500;
     public static final int DEFAULT_DOUBLE_PRESS_WINDOW_MS = 300;
 

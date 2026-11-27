@@ -1,9 +1,13 @@
 package io.github.rtzhang.keypilot.ui;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.text.Editable;
 import android.text.InputType;
@@ -46,7 +50,12 @@ public final class ActionPickerDialog {
     }
 
     public interface MultiAppCallback {
-        void onPicked(List<String> selectedPackages);
+        void onPicked(List<String> selected);
+    }
+
+    /** Callback carrying the full AppEntry (label + package) for the activity browser. */
+    public interface AppPickedCallback {
+        void onPicked(AppEntry entry);
     }
 
     public static final class AppEntry {
@@ -232,7 +241,7 @@ public final class ActionPickerDialog {
                 showSingleAppPicker(activity, "选择要启动的应用", callback);
                 return;
             case LAUNCH_ACTIVITY:
-                showActivityEditor(activity, current, callback);
+                ActivityBrowserDialog.showEditor(activity, current, callback);
                 return;
             case CUSTOM_INTENT:
                 showCustomIntentEditor(activity, current, callback);
@@ -268,6 +277,24 @@ public final class ActionPickerDialog {
     public static void showSingleAppPicker(final Activity activity,
                                            final String title,
                                            final OnActionSelected callback) {
+        showAppPicker(activity, title, new AppPickedCallback() {
+            @Override
+            public void onPicked(AppEntry e) {
+                callback.onSelected(ActionSpec.launchApp(e.packageName, e.label));
+            }
+        });
+    }
+
+    /** Reused by the Activity 探测绑定器: pick APP -> open the activity browser. */
+    public static void showAppPickerForActivity(final Activity activity,
+                                                final String title,
+                                                final AppPickedCallback callback) {
+        showAppPicker(activity, title, callback);
+    }
+
+    private static void showAppPicker(final Activity activity,
+                                      final String title,
+                                      final AppPickedCallback callback) {
         final UiTheme.Palette p = UiTheme.colors(activity);
         final UiTheme.BottomSheet sheet = UiTheme.createBottomSheet(
                 activity, title, "按应用名或包名搜索，点击即可选中", false);
@@ -306,7 +333,7 @@ public final class ActionPickerDialog {
                     @Override
                     public void onClick(View v) {
                         sheet.dismiss();
-                        callback.onSelected(ActionSpec.launchApp(e.packageName, e.label));
+                        callback.onPicked(e);
                     }
                 });
                 wrap.addView(row);
@@ -503,6 +530,29 @@ public final class ActionPickerDialog {
         col.addView(nameTv);
         col.addView(pkgTv);
         row.addView(col);
+
+        // one-tap package copy (activity binder & every app picker share this row)
+        TextView copyBtn = UiTheme.makeText(activity, "复制", 12, true, p.primary);
+        copyBtn.setBackground(UiTheme.rippleSurface(activity, Color.TRANSPARENT,
+                p.outline, 1, UiTheme.RADIUS_PILL, p.primary));
+        copyBtn.setGravity(Gravity.CENTER);
+        copyBtn.setSingleLine(true);
+        copyBtn.setMinHeight(UiTheme.dp(activity, 30));
+        copyBtn.setPadding(UiTheme.dp(activity, 10), UiTheme.dp(activity, 6),
+                UiTheme.dp(activity, 10), UiTheme.dp(activity, 6));
+        copyBtn.setClickable(true);
+        copyBtn.setFocusable(true);
+        final String copyPkg = e.packageName;
+        copyBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                copyPackageToClipboard(activity, copyPkg);
+            }
+        });
+        LinearLayout.LayoutParams cpLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cpLp.leftMargin = UiTheme.dp(activity, 8);
+        row.addView(copyBtn, cpLp);
 
         if (multiSelect) {
             TextView badge = UiTheme.makeText(activity, selected ? "✓" : "○", 18, true,
@@ -866,33 +916,6 @@ public final class ActionPickerDialog {
         sheet.show();
     }
 
-    private static void showActivityEditor(final Activity activity,
-                                           final ActionSpec current,
-                                           final OnActionSelected callback) {
-        final UiTheme.BottomSheet sheet = UiTheme.createBottomSheet(
-                activity, "启动指定 Activity", "通过包名与完整类名跳转应用内页", true);
-
-        final EditText pkgIn = UiTheme.makeInput(activity, "包名（如 com.nothing.ntessentialspace）",
-                current != null ? current.packageName : "");
-        sheet.body.addView(pkgIn);
-
-        final EditText clsIn = UiTheme.makeInput(activity, "完整类名（如 .MainActivity）",
-                current != null ? current.className : "");
-        sheet.body.addView(clsIn);
-
-        addCancelSaveFooter(activity, sheet, new Runnable() {
-            @Override
-            public void run() {
-                String pkg = pkgIn.getText().toString().trim();
-                String cls = clsIn.getText().toString().trim();
-                if (pkg.isEmpty() || cls.isEmpty()) return;
-                if (cls.startsWith(".")) cls = pkg + cls;
-                callback.onSelected(ActionSpec.launchActivity(pkg, cls, null));
-            }
-        });
-        sheet.show();
-    }
-
     private static void showCustomIntentEditor(final Activity activity,
                                                final ActionSpec current,
                                                final OnActionSelected callback) {
@@ -1004,6 +1027,19 @@ public final class ActionPickerDialog {
                         onSave.run();
                     }
                 }));
+    }
+
+    /** One-tap copy of the package name shown in every app picker row. */
+    private static void copyPackageToClipboard(Activity activity, String packageName) {
+        try {
+            ClipboardManager cm = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("keypilot_package", packageName));
+                android.widget.Toast.makeText(activity, "已复制包名 " + packageName,
+                        android.widget.Toast.LENGTH_SHORT).show();
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     public static List<AppEntry> queryLaunchableApps(Activity activity) {

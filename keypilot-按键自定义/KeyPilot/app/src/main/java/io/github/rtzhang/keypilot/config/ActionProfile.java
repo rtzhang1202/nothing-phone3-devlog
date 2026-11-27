@@ -77,6 +77,15 @@ public final class ActionProfile {
     }
 
     public String overrideSummary() {
+        return overrideSummary(null);
+    }
+
+    /** Resolver for human friendly action names (activity labels from the label store). */
+    public interface SpecNamer {
+        String nameFor(ActionSpec spec);
+    }
+
+    public String overrideSummary(SpecNamer namer) {
         StringBuilder sb = new StringBuilder();
         int count = 0;
         for (KeyId k : KeyId.values()) {
@@ -90,7 +99,11 @@ public final class ActionProfile {
                     sb.append("…等 ").append(overrideCount()).append(" 项");
                     return sb.toString();
                 }
-                sb.append(shortKeyLabel(k)).append(g.displayName).append("→").append(s.type.displayName);
+                String display = namer != null ? namer.nameFor(s) : null;
+                if (display == null || display.isEmpty()) {
+                    display = s.label != null ? s.label : s.type.displayName;
+                }
+                sb.append(shortKeyLabel(k)).append(g.displayName).append("→").append(display);
                 count++;
             }
         }

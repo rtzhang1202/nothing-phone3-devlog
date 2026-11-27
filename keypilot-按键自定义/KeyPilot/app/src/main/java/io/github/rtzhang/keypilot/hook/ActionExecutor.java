@@ -36,6 +36,7 @@ import android.widget.Toast;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -619,7 +620,9 @@ public final class ActionExecutor {
         intent.setComponent(new ComponentName(spec.packageName, spec.className));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivityAsCurrentUser(ctx, intent);
-        return "启动 " + spec.className;
+        String named = ConfigBridge.getActivityLabel(spec.packageName, spec.className);
+        if (named == null) named = spec.label;
+        return "启动 " + (named != null ? named : spec.className);
     }
 
     private static String execCustomIntent(Context ctx, ActionSpec spec) {
@@ -1069,6 +1072,29 @@ public final class ActionExecutor {
                 return;
             }
         } catch (Throwable ignored) {
+        }
+        ctx.startActivity(intent);
+    }
+
+    /**
+     * Strict variant used by the TRY_LAUNCH bridge command: unlike
+     * {@link #startActivityAsCurrentUser} it never swallows failures, rethrowing the
+     * real cause (SecurityException / ActivityNotFoundException / ...) so the UI can
+     * display the exact error reason to the user.
+     */
+    public static void startActivityStrict(Context ctx, Intent intent) throws Throwable {
+        UserHandle current = getCurrentUserHandle();
+        if (current != null) {
+            try {
+                Method m = Context.class.getMethod("startActivityAsUser", Intent.class, UserHandle.class);
+                m.invoke(ctx, intent, current);
+                return;
+            } catch (InvocationTargetException ite) {
+                Throwable cause = ite.getCause();
+                throw cause != null ? cause : ite;
+            } catch (NoSuchMethodException | IllegalAccessException ignored) {
+                // fall through to plain startActivity
+            }
         }
         ctx.startActivity(intent);
     }
